@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# 環境変数
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# プロジェクト固有
+.cursor/portfolio-generated-content.json
+docs/portfolio-prompts/
+*.xlsx
+!examples/**/*.xlsx
+!examples/**/ポートフォリオ_テンプレート.xlsx
+
+# ログ
+*.log
+
+# 一時ファイル
+*.tmp
+*.temp
