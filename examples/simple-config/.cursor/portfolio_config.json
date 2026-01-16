@@ -1,0 +1,213 @@
+{
+  "version": "2.0",
+  "description": "ポートフォリオ自動生成システムの設定ファイル（v2.0）。コードベースから直接情報を抽出してエクセルに自動入力。",
+  "writing": {
+    "tone": "polite",
+    "audience": "Recruiter",
+    "language": "ja"
+  },
+  "excel_template": {
+  "file": "ポートフォリオ_テンプレート.xlsx",
+  "sheet": "フォーマット"
+  },
+  "cell_mapping": {
+    "日付": {
+      "cell": "D3",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["git"],
+      "transform": "date_format",
+      "fallback_when_missing": "now",
+      "description": "Git履歴から最終コミット日を取得し、'YYYY年/MM月/DD日'形式に変換して記入。Git履歴が取得できない場合は現在日時を同形式で記入"
+    },
+    "タイトル": {
+      "cell": "D4",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "semantic_search"],
+      "description": "このテーマを一言で表すと？コードベースからプロジェクトのテーマを一言で表現する内容を抽出して記入"
+    },
+    "テーマ選定の理由": {
+      "cell": "D5",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "semantic_search"],
+      "description": "なぜこのテーマを選んだのか？コードベースからプロジェクトのテーマ選定理由を抽出して記入"
+    },
+    "想定業界": {
+      "cell": "D6",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "semantic_search"],
+      "description": "本テーマを活用する想定業界。コードベースから想定される業界・領域を抽出して記入"
+    },
+    "想定企業": {
+      "cell": "D7",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "semantic_search"],
+      "description": "本テーマを活用する企業名（実在する企業名）。コードベースから想定される企業を抽出して記入"
+    },
+    "想定ポジション": {
+      "cell": "D8",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "semantic_search"],
+      "description": "本テーマを活用する企業のポジション・役職・部署・役割を記載。コードベースから想定されるポジションを抽出して記入"
+    },
+    "背景": {
+      "cell": "D9",
+      "row_count": 6,
+      "merged_range": "D9:L14",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "git", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "想定企業の業界の現状、課題を記載。想定企業がこの成果物を必要とする理由。想定している企業の業界事情について調べ、業界背景を把握したうえで記載。政治的、市場的背景を記載し、（できれば）数字的根拠をもとに仮説を立てる。コードベースから背景情報を抽出し、約500文字に要約して記入"
+    },
+    "目的": {
+      "cell": "D15",
+      "row_count": 6,
+      "merged_range": "D15:L20",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "plan.json", "ARCHITECTURE.md", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "背景を踏まえ、本成果物を利用することで想定企業にどのような利点があるのかを記載。想定企業でどのタイミングでのどの様に活用するか具体的に記載。工数削減、人件費削減など、なるべく明確に想定企業目線でメリットを記載。コードベースから目的・効果を抽出し、約500文字に要約して記入"
+    },
+    "概要": {
+      "cell": "D21",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "semantic_search"],
+      "transform": "first_paragraph",
+      "description": "本成果物についての説明。どんなデータを使用したどんな成果物なのか簡潔に記載する。コードベースから成果物の概要を抽出し、約50文字で記入"
+    },
+    "アプローチの理由": {
+      "cell": "D22",
+      "row_count": 6,
+      "merged_range": "D22:L27",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["ARCHITECTURE.md", "README.md", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "手法の選択理由。コードベースから採用した技術・手法とその選択理由を抽出し、約500文字に要約して記入"
+    },
+    "結果を何に活かせるのか": {
+      "cell": "D28",
+      "row_count": 6,
+      "merged_range": "D28:L33",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "成果物を活用する事でできる未来（他業種への展開を含むなど）。コードベースから成果物の活用可能性・展開可能性を抽出し、約500文字に要約して記入"
+    },
+    "使用した技術": {
+      "cell": "D34",
+      "row_count": 1,
+      "estimated_chars": 50,
+      "max_chars": 50,
+      "codebase_sources": ["requirements.txt", "package.json", "pyproject.toml"],
+      "transform": "extract_technologies",
+      "description": "成果物の使用技術。requirements.txtから主要な技術を抽出してカンマ区切りで表示"
+    },
+    "成果": {
+      "cell": "D37",
+      "row_count": 6,
+      "merged_range": "D37:L42",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "CHANGELOG.md", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "成果物から確認できた結果を定量（機械学習モデルの場合は精度、業務をどのくらい短縮できるか　など）で記述。どの様に作成したか、どの様な結果となったかを記載。コードベースから定量可能な成果を抽出し、約500文字に要約して記入"
+    },
+    "効果": {
+      "cell": "D43",
+      "row_count": 6,
+      "merged_range": "D43:L48",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "成果物から確認できた結果を定性（実用に耐えうるか、課題を解決できるか）で記述。コードベースから定性的な効果・影響を抽出し、約500文字に要約して記入"
+    },
+    "工夫点・苦労点": {
+      "cell": "D49",
+      "row_count": 6,
+      "merged_range": "D49:L54",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": ["README.md", "ARCHITECTURE.md", "CHANGELOG.md", "git", "semantic_search"],
+      "transform": "summarize_to_length",
+      "description": "本成果物を作成する際の工夫点と苦労点。課題をどう乗り越えたか記載。コードベースから工夫点・苦労点・課題解決のプロセスを抽出し、約500文字に要約して記入"
+    },
+    "今後の施策": {
+      "cell": "D55",
+      "row_count": 6,
+      "merged_range": "D55:L60",
+      "estimated_chars": 500,
+      "max_chars": 500,
+      "codebase_sources": [
+        "README.md",
+        "ARCHITECTURE.md",
+        "CHANGELOG.md",
+        "docs/FUTURE_TASKS.md",
+        "docs/ROADMAP-brushup-2.md",
+        "docs/tasks/portfolio-generation-v2-implementation-plan.md",
+        "semantic_search"
+      ],
+      "transform": "summarize_to_length",
+      "description": "本成果物をブラッシュアップするために、今後どのような取り組み・改善・拡張を行うべきかを記載。機能面・UX面・運用面・ビジネス面など、今後の施策を具体的に整理して記入。"
+    }
+  },
+  "data_sources": {
+    "git": {
+      "command": "git log",
+      "date_format": "YYYY年/MM月/DD日"
+    },
+    "plan": {
+      "paths": [
+        ".cursor/plan.json",
+        ".cursor/*.plan.json"
+      ],
+      "format": "json",
+      "merge_strategy": "merge_items",
+      "description": "複数のplanファイルを指定可能。ワイルドカード（*.plan.json）で複数ファイルを自動検出。実行時に--planオプションで特定のファイルを指定することも可能。"
+    },
+    "requirements": {
+      "path": "requirements.txt",
+      "format": "text"
+    }
+  },
+  "text_transforms": {
+    "summarize_to_length": {
+      "description": "指定された文字数に要約する",
+      "max_chars": 500,
+      "min_chars": 200
+    },
+    "expand_to_length": {
+      "description": "指定された文字数に拡張する",
+      "target_chars": 300
+    },
+    "first_paragraph": {
+      "description": "最初の段落を抽出（約50文字）",
+      "max_chars": 50
+    },
+    "extract_technologies": {
+      "description": "requirements.txtから主要な技術を抽出",
+      "exclude": ["pytest", "pytest-cov", "ruff", "black", "mypy"]
+    },
+    "date_format": {
+      "description": "日付を'YYYY年/MM月/DD日'形式に変換",
+      "format": "%Y年/%m月/%d日"
+    }
+  }
+}

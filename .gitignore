@@ -32,23 +32,29 @@ ENV/
 *.swp
 *.swo
 *~
-.cursor/
 
 # 環境変数
 .env
 .env.local
+
+# MCP設定（環境固有のパスが含まれるため）
+mcp_config.json
 
 # OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# プロジェクト固有
+# プロジェクト固有（生成物）
 .cursor/portfolio-generated-content.json
 docs/portfolio-prompts/
 *.xlsx
 !examples/**/*.xlsx
 !examples/**/ポートフォリオ_テンプレート.xlsx
+
+# ルートの.cursorディレクトリ（ユーザー固有の設定ファイル）
+# ただし、examples内の.cursorは含める（サンプルとして必要）
+/.cursor/portfolio_config.json
 
 # ログ
 *.log

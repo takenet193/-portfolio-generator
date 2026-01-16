@@ -127,6 +127,26 @@ class PortfolioConfig:
         """テキスト変換ルール"""
         return self.config_data.get("text_transforms", {})
 
+    @property
+    def writing(self) -> dict[str, Any]:
+        """文章スタイル設定"""
+        return self.config_data.get("writing", {})
+
+    @property
+    def writing_tone(self) -> str:
+        """文章のトーン（デフォルト: "polite"）"""
+        return self.writing.get("tone", "polite")
+
+    @property
+    def writing_audience(self) -> str:
+        """ターゲット読者（デフォルト: ""）"""
+        return self.writing.get("audience", "")
+
+    @property
+    def writing_language(self) -> str:
+        """生成言語（デフォルト: "ja"）"""
+        return self.writing.get("language", "ja")
+
     def get_cell_config(self, cell_name: str) -> dict[str, Any] | None:
         """
         指定されたセル名の設定を取得
