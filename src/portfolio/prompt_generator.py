@@ -276,9 +276,72 @@ class PromptGenerator:
         # 生成指示
         lines.append("## 生成指示")
         lines.append("")
+        
+        # 言語設定の取得と反映
+        language = self.config.writing_language if hasattr(self.config, 'writing_language') else "ja"
+        # 言語の日本語名マッピング（拡張可能、カスタム言語に対応）
+        language_names = {
+            "ja": "日本語",
+            "en": "英語",
+            "zh": "中国語",
+            "zh-CN": "簡体字中国語",
+            "zh-TW": "繁体字中国語",
+            "ko": "韓国語",
+            "fr": "フランス語",
+            "de": "ドイツ語",
+            "es": "スペイン語",
+            "pt": "ポルトガル語",
+            "it": "イタリア語",
+            "ru": "ロシア語",
+        }
+        # 辞書にない場合はそのまま使用（カスタム言語に対応）
+        language_name = language_names.get(language.lower(), language)
+        
+        # トーンとオーディエンスの取得
+        tone = self.config.writing_tone if hasattr(self.config, 'writing_tone') else "polite"
+        audience = self.config.writing_audience if hasattr(self.config, 'writing_audience') else ""
+        
+        # 言語指定を追加
+        if language.lower() in language_names:
+            lines.append(f"**生成言語**: {language_name} ({language})")
+        else:
+            # カスタム言語の場合はそのまま表示
+            lines.append(f"**生成言語**: {language}")
+        if tone:
+            # トーンの日本語名マッピング（拡張可能）
+            tone_names = {
+                "polite": "丁寧",
+                "casual": "カジュアル",
+                "formal": "フォーマル",
+                "professional": "プロフェッショナル",
+                "friendly": "フレンドリー",
+                "technical": "技術的",
+                "concise": "簡潔",
+                "detailed": "詳細",
+                "persuasive": "説得力のある",
+                "business": "ビジネス",
+                "academic": "学術的",
+                "plain": "プレーン（常体）",
+            }
+            # 辞書にない場合はそのまま使用（カスタムトーンに対応）
+            tone_name = tone_names.get(tone.lower(), tone)
+            lines.append(f"**文章のトーン**: {tone_name}")
+            # plainトーンの場合、常体で書く旨を明示
+            if tone.lower() == "plain":
+                lines.append("  - 常体（である調）で記述してください。ですます調（敬語）は使用せず、簡潔でシンプルな文体で記述してください。")
+        if audience:
+            lines.append(f"**ターゲット読者**: {audience}")
+        lines.append("")
+        
         lines.append(
             "上記の情報を基に、セルの説明に従って適切な内容を生成してください。"
         )
+        # 言語指定の指示（日本語以外、またはカスタム言語の場合）
+        if language.lower() != "ja":
+            if language.lower() in language_names:
+                lines.append(f"生成する内容は{language_name}で記述してください。")
+            else:
+                lines.append(f"生成する内容は{language}で記述してください。")
         lines.append("")
         lines.append(
             "生成した内容を以下のJSON形式で `.cursor/portfolio-generated-content.json` に保存してください。"

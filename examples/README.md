@@ -10,12 +10,13 @@
 
 構成:
 
-- `simple-config/ポートフォリオ_Template_sample.xlsx`
-  - ダミーの Excel テンプレートファイルです。
-  - 実際の運用では、ここにレイアウト済みのポートフォリオテンプレートを置きます。
 - `simple-config/.cursor/portfolio_config.json`
   - 本ツールが読み込む設定ファイルのサンプルです。
   - Excel テンプレート名・シート名・セルごとのマッピング情報などを定義します。
+
+**注意**: Excelテンプレートファイルは、各自で用意する必要があります。
+- `portfolio_config.json` の `excel_template.file` で指定したファイル名のExcelテンプレートを、プロジェクトルートに配置してください。
+- テンプレートには、`portfolio_config.json` で指定したセルアドレスに対応するセルが存在している必要があります。
 
 ### `portfolio_config.json` が読み込まれる想定
 
@@ -27,8 +28,13 @@
    - プロンプト生成モジュール（`prompt_generator.py`）がプロンプト Markdown を生成
    - Excel 出力モジュール（`excel_writer.py`）がテンプレートに内容を書き込む
 
-現時点では実装途中のため、これらはあくまで **構造と想定フローのサンプル** として
-参照してください。
+## 使い方
+
+1. `simple-config/.cursor/portfolio_config.json` を参考に、自分のプロジェクト用の設定ファイルを作成します。
+2. Excelテンプレートファイルを用意し、プロジェクトルートに配置します。
+3. ツールを実行してポートフォリオを生成します。
+
+詳細な使用方法は、[メインのREADME](../README.md) および [ユーザーガイド](../docs/user-guide.md) を参照してください。
 
 
 
