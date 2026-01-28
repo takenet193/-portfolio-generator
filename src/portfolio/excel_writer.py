@@ -6,10 +6,13 @@
 import logging
 import os
 import shutil
+import re
 
 try:
     from openpyxl import Workbook, load_workbook
     from openpyxl.styles import Alignment, Font
+    from openpyxl.styles.colors import Color
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 except ImportError as err:
     raise ImportError(
         "openpyxlがインストールされていません。"
@@ -17,6 +20,9 @@ except ImportError as err:
     ) from err
 
 logger = logging.getLogger(__name__)
+
+# Excelセル（文字列）の最大長。超えるとファイル破損/修復対象になり得るため強制トリムする。
+EXCEL_MAX_CELL_CHARS = 32767
 
 
 class ExcelWriteError(Exception):
@@ -27,6 +33,24 @@ class ExcelWriteError(Exception):
 
 class ExcelWriter:
     """エクセルファイルへの書き込みを管理するクラス"""
+
+    @staticmethod
+    def _sanitize_cell_value(value: str | int | float) -> str | int | float:
+        """
+        Excelに安全に書き込める形に値を正規化する。
+
+        - 文字列はExcel/OpenXMLで不正な制御文字を除去
+        - 文字列長はExcelセル上限(32767)にトリム
+        """
+        if isinstance(value, str):
+            # openpyxlが検出しきれずExcel側で修復が走るケースがあるため、事前に除去する
+            sanitized = ILLEGAL_CHARACTERS_RE.sub("", value)
+            # 念のため、その他のXML不正文字（0x00など）を追加で除去
+            sanitized = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", sanitized)
+            if len(sanitized) > EXCEL_MAX_CELL_CHARS:
+                sanitized = sanitized[:EXCEL_MAX_CELL_CHARS]
+            return sanitized
+        return value
 
     def __init__(
         self, template_path: str, output_path: str, sheet_name: str = "フォーマット"
@@ -121,12 +145,14 @@ class ExcelWriter:
             raise ExcelWriteError("ワークブックが読み込まれていません")
         try:
             cell = self.sheet[cell_address]
+            value = self._sanitize_cell_value(value)
             # 値を書き込む
             cell.value = value
 
             # フォント色を黒に設定
             current_font = cell.font
-            black_color = "000000"  # 黒色（RGB形式）
+            # Excel/OpenXMLはARGB(8桁)が基本。6桁RGBはExcel側で修復/無視されることがあるため避ける。
+            black_color = Color(rgb="FF000000")  # 黒（ARGB）
 
             if current_font is None:
                 cell.font = Font(color=black_color)

@@ -46,6 +46,7 @@ def generate_prompts_mode(
     project_root: str | None = None,
     prompts_dir: str | None = None,
     verbose: bool = False,
+    semantic_search_results_path: str | None = None,
 ) -> int:
     """
     プロンプトファイル生成モード
@@ -55,6 +56,7 @@ def generate_prompts_mode(
         project_root: プロジェクトルートディレクトリ
         prompts_dir: プロンプトファイルの出力ディレクトリ
         verbose: 詳細ログを有効にする
+        semantic_search_results_path: セル別セマンティック検索結果JSON（任意）
 
     Returns:
         終了コード（0: 成功、1: エラー）
@@ -93,7 +95,13 @@ def generate_prompts_mode(
         if prompts_dir is None:
             prompts_dir = os.path.join(project_root, "docs", "portfolio-prompts")
 
-        generated_files = generate_prompts(config, context, project_root, prompts_dir)
+        generated_files = generate_prompts(
+            config,
+            context,
+            project_root,
+            prompts_dir,
+            semantic_search_results_path=semantic_search_results_path,
+        )
 
         logger.info(
             f"プロンプトファイルを生成しました: {len(generated_files)} ファイル"
@@ -369,6 +377,12 @@ def main():
         default=None,
         help="プロンプトファイルの出力ディレクトリ（--generate-prompts使用時、デフォルト: docs/portfolio-prompts/）",
     )
+    parser.add_argument(
+        "--semantic-search-results",
+        type=str,
+        default=None,
+        help="セル別セマンティック検索結果JSONのパス（--generate-prompts使用時）",
+    )
 
     args = parser.parse_args()
 
@@ -379,6 +393,7 @@ def main():
             project_root=args.project_root,
             prompts_dir=args.prompts_dir,
             verbose=args.verbose,
+            semantic_search_results_path=args.semantic_search_results,
         )
         return exit_code
 

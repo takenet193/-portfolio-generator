@@ -3,15 +3,22 @@
 各セルごとにAI用のプロンプトファイルを生成
 """
 
+import json
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
+from .codebase_reader import read_file_content
+from .file_discovery import calculate_file_importance
 from .git_history import generate_development_history_markdown
 from .user_settings import CellUserSetting, UserSettings, load_user_settings
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_SEMANTIC_TOP_N = 8
+DEFAULT_SEMANTIC_W_RANK = 0.4
+DEFAULT_SEMANTIC_W_RULE = 0.6
 
 
 class PromptGenerationError(Exception):
@@ -29,6 +36,7 @@ class PromptGenerator:
         codebase_context: Any,
         project_root: str,
         user_settings: UserSettings | None = None,
+        semantic_search_results: dict[str, list[str]] | None = None,
     ):
         """
         プロンプト生成器を初期化
@@ -38,11 +46,13 @@ class PromptGenerator:
             codebase_context: CodebaseContextインスタンス
             project_root: プロジェクトルートディレクトリ
             user_settings: ユーザー設定（Markdownから読み込んだもの）
+            semantic_search_results: セル名 -> 候補ファイルパス配列（外部JSONから読み込んだもの）
         """
         self.config = config
         self.codebase_context = codebase_context
         self.project_root = project_root
         self.user_settings = user_settings
+        self.semantic_search_results = semantic_search_results or {}
 
     def generate_all_prompts(self, output_dir: str) -> list[str]:
         """
@@ -237,7 +247,7 @@ class PromptGenerator:
 
         # codebase_sourcesに基づいて関連ファイルを抽出
         relevant_files, git_content = self._get_relevant_files(
-            codebase_sources, all_contents
+            cell_name, codebase_sources, all_contents
         )
 
         # 関連ファイルの内容を最初に配置
@@ -342,6 +352,10 @@ class PromptGenerator:
                 lines.append(f"生成する内容は{language_name}で記述してください。")
             else:
                 lines.append(f"生成する内容は{language}で記述してください。")
+        # 文字数制限の再強調（重要）
+        if max_chars:
+            lines.append("")
+            lines.append(f"**重要**: 生成する内容は必ず{max_chars}文字以内に収めてください。この文字数制限は厳守してください。")
         lines.append("")
         lines.append(
             "生成した内容を以下のJSON形式で `.cursor/portfolio-generated-content.json` に保存してください。"
@@ -363,12 +377,13 @@ class PromptGenerator:
         return "\n".join(lines)
 
     def _get_relevant_files(
-        self, codebase_sources: list[str], all_contents: dict[str, str]
+        self, cell_name: str, codebase_sources: list[str], all_contents: dict[str, str]
     ) -> tuple[dict[str, str], str]:
         """
         コードベースソースに基づいて関連ファイルを抽出
 
         Args:
+            cell_name: セル名（例: "背景", "目的"）
             codebase_sources: コードベースソースのリスト（例: ["README.md", "semantic_search"]）
             all_contents: すべてのファイル内容の辞書
 
@@ -378,10 +393,79 @@ class PromptGenerator:
         relevant_files: dict[str, str] = {}
         git_content = ""
 
+        # all_contentsのキーは絶対パスのことが多いので、正規化して高速に引けるようにしておく
+        all_contents_by_norm_abs: dict[str, tuple[str, str]] = {}
+        for existing_path, content in all_contents.items():
+            try:
+                norm_abs = os.path.normcase(os.path.normpath(os.path.abspath(existing_path)))
+                all_contents_by_norm_abs[norm_abs] = (existing_path, content)
+            except Exception:
+                # 万一変換できないパスはスキップ（後続で従来ロジックにより拾える可能性あり）
+                continue
+
         for source in codebase_sources:
             if source == "semantic_search":
-                # セマンティック検索の場合はすべてのファイルを含める
-                relevant_files.update(all_contents)
+                candidates = self.semantic_search_results.get(cell_name) or []
+
+                # JSON未指定/セルキー無し/空の場合は既存フォールバック（=全投入）を維持
+                if not candidates:
+                    relevant_files.update(all_contents)
+                    continue
+
+                scored: list[tuple[float, float, int, str]] = []
+                # (final_score, file_importance, rank, abs_path)
+                for rank, candidate_path in enumerate(candidates):
+                    if not isinstance(candidate_path, str) or not candidate_path.strip():
+                        continue
+                    candidate_path = candidate_path.strip()
+
+                    abs_path = (
+                        os.path.abspath(candidate_path)
+                        if os.path.isabs(candidate_path)
+                        else os.path.abspath(os.path.join(self.project_root, candidate_path))
+                    )
+                    rank_score = 1.0 / (rank + 1)
+                    file_importance = calculate_file_importance(abs_path, self.project_root)
+                    final_score = (
+                        DEFAULT_SEMANTIC_W_RULE * file_importance
+                        + DEFAULT_SEMANTIC_W_RANK * rank_score
+                    )
+                    scored.append((final_score, file_importance, rank, abs_path))
+
+                scored.sort(key=lambda t: (t[0], t[1], -t[2]), reverse=True)
+
+                selected = scored[: DEFAULT_SEMANTIC_TOP_N]
+                for final_score, file_importance, rank, abs_path in selected:
+                    norm_abs = os.path.normcase(os.path.normpath(os.path.abspath(abs_path)))
+
+                    if norm_abs in all_contents_by_norm_abs:
+                        existing_path, content = all_contents_by_norm_abs[norm_abs]
+                        if existing_path not in relevant_files:
+                            relevant_files[existing_path] = content
+                        continue
+
+                    if not os.path.exists(abs_path):
+                        logger.debug(
+                            "semantic_search候補ファイルが存在しないためスキップ: %s (cell=%s rank=%s final=%.3f)",
+                            abs_path,
+                            cell_name,
+                            rank,
+                            final_score,
+                        )
+                        continue
+
+                    try:
+                        content, _metadata = read_file_content(abs_path)
+                        if abs_path not in relevant_files:
+                            relevant_files[abs_path] = content
+                    except Exception as e:
+                        logger.debug(
+                            "semantic_search候補ファイルの読み込みに失敗: %s (cell=%s): %s",
+                            abs_path,
+                            cell_name,
+                            e,
+                        )
+
             elif source == "git":
                 # Git履歴を取得
                 try:
@@ -408,6 +492,7 @@ def generate_prompts(
     project_root: str,
     output_dir: str | None = None,
     user_settings_path: str | None = None,
+    semantic_search_results_path: str | None = None,
 ) -> list[str]:
     """
     プロンプトファイルを生成する便利関数
@@ -427,7 +512,51 @@ def generate_prompts(
     # ユーザー設定（Markdown）の読み込み
     user_settings = load_user_settings(project_root, user_settings_path)
 
+    semantic_search_results: dict[str, list[str]] | None = None
+    if semantic_search_results_path:
+        json_path = (
+            os.path.abspath(semantic_search_results_path)
+            if os.path.isabs(semantic_search_results_path)
+            else os.path.abspath(os.path.join(project_root, semantic_search_results_path))
+        )
+        try:
+            with open(json_path, encoding="utf-8") as f:
+                raw = json.load(f)
+            if isinstance(raw, dict):
+                parsed: dict[str, list[str]] = {}
+                for k, v in raw.items():
+                    if not isinstance(k, str):
+                        continue
+                    if isinstance(v, list):
+                        paths = [p for p in v if isinstance(p, str) and p.strip()]
+                        if paths:
+                            parsed[k] = paths
+                    else:
+                        # 最小スキーマ以外は無視（paths_only）
+                        continue
+                semantic_search_results = parsed
+            else:
+                logger.warning(
+                    "semantic_search_results JSONがdict形式ではありません。フォールバックします: %s",
+                    json_path,
+                )
+        except FileNotFoundError:
+            logger.warning(
+                "semantic_search_results JSONが見つかりません。フォールバックします: %s",
+                json_path,
+            )
+        except Exception as e:
+            logger.warning(
+                "semantic_search_results JSONの読み込みに失敗しました。フォールバックします: %s (%s)",
+                json_path,
+                e,
+            )
+
     generator = PromptGenerator(
-        config, codebase_context, project_root, user_settings=user_settings
+        config,
+        codebase_context,
+        project_root,
+        user_settings=user_settings,
+        semantic_search_results=semantic_search_results,
     )
     return generator.generate_all_prompts(output_dir)
